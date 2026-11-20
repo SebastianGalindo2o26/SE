@@ -4,7 +4,7 @@ Esta guía explica la pantalla web **Sentinel**, qué puede hacer el usuario y q
 
 ## Qué se ve al abrirla
 
-La pantalla principal (`GET /`) está dividida en cuatro zonas:
+La pantalla principal (`GET /`) presenta las vistas **Resumen**, **Servicios** y **Actividad**. La barra lateral cambia entre vistas sin desplazar la página; el botón ☰ permite ocultarla y recuperarla. El diseño usa tonos azul y grafito con acentos naranjas para distinguir acciones.
 
 | Zona | Qué muestra | Para qué sirve |
 |---|---|---|
@@ -28,13 +28,15 @@ En **Conecta un servicio**, el usuario llena:
 
 1. **Nombre:** etiqueta que aparecerá en el dashboard.
 2. **URL del endpoint:** dirección HTTP o HTTPS que el sistema consultará.
-3. **HTTP esperado:** código que se considera respuesta correcta; por defecto es `200`.
+3. **HTTP esperado:** selecciona una respuesta identificada por código y nombre, como `200 · OK`, `404 · No encontrado` o `503 · Servicio no disponible`; por defecto es `200 · OK`.
 4. **Verificar cada:** intervalo de 1, 5 o 10 minutos.
 5. **Autenticación:** opcional. Elige Bearer token, API key en un header cuyo nombre defines, o usuario y contraseña Basic. La clave se introduce en un campo oculto.
 
 Al pulsar **Agregar a monitoreo**, el navegador envía un formulario interno a `POST /apis`. FastAPI valida los datos y el destino, guarda el servicio en la tabla `apis` y vuelve al dashboard. Un error de validación se muestra en una franja sobre la pantalla. Registrar una API **no** hace todavía una solicitud al servicio externo; la primera puede ejecutarse manualmente con `↻` o cuando llegue su turno automático.
 
-La lista `ALLOWED_TARGET_HOSTS` de `.env` define qué nombres de host se pueden registrar. Los destinos privados requieren además `ALLOWED_PRIVATE_HOSTS`. Por defecto se permite localhost para las pruebas de clase.
+Puedes registrar una API pública escribiendo su URL completa, sin editar `.env`. Los destinos privados requieren que su hostname esté en `ALLOWED_PRIVATE_HOSTS`; por defecto se permite localhost para las pruebas de clase.
+
+En la vista **Servicios** se encuentra el formulario de registro y la lista de endpoints. **Actividad** muestra las mediciones recientes y sus explicaciones. **Resumen** reúne disponibilidad, verificaciones e incidentes. Cambiar de sección desde la barra lateral actualiza la vista en el sitio.
 
 ### Credenciales de una API
 

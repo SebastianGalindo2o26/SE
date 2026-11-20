@@ -1,3 +1,24 @@
+document.querySelector('.nav-toggle')?.addEventListener('click', () => {
+  document.body.classList.toggle('nav-collapsed');
+});
+
+document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    const view = link.dataset.view;
+    document.querySelectorAll('[data-page]').forEach((page) => {
+      page.hidden = page.dataset.page !== view;
+    });
+    document.querySelectorAll('.nav-link').forEach((item) => item.classList.toggle('active', item === link));
+    document.querySelector('.breadcrumb strong').textContent = link.textContent.trim();
+  });
+});
+document.querySelectorAll('[data-open-view]').forEach((link) => {
+  link.addEventListener('click', () => document.querySelector(`.nav-link[data-view="${link.dataset.openView}"]`)?.click());
+});
+
+document.querySelectorAll('select[data-current]').forEach((select) => { select.value = select.dataset.current; });
+
 document.addEventListener('click', (event) => {
   const open = document.querySelector('.edit-menu[open]');
   if (open && !open.contains(event.target)) open.removeAttribute('open');

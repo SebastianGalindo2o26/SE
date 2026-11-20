@@ -86,7 +86,7 @@ flowchart LR
 | Persistencia | `app/infrastructure/models.py`, `database.py`, `schema.py` | Mantiene siete tablas en SQLite o Neon. |
 | Monitoreo periódico | `app/infrastructure/scheduler.py` | Revisa cada minuto qué API activa tiene su intervalo vencido. |
 
-**Flujo en la interfaz:** escribe nombre, URL, código esperado e intervalo; elige autenticación solo si la API la requiere. Al pulsar **Agregar a monitoreo** se guarda la configuración, pero todavía no se consulta el endpoint. Pulsa **Monitorear ahora** para ejecutar el GET. El sistema registra código/latencia/error, combina esos hechos con los dos monitoreos anteriores de esa misma API, aplica reglas hasta que no haya nuevas conclusiones y guarda diagnóstico, gravedad, recomendaciones y explicación. La tabla **Actividad reciente** permite abrir **Explicar**. El proceso también monitorea automáticamente cada 1, 5 o 10 minutos mientras permanezca abierto.
+**Flujo en la interfaz:** la navegación lateral cambia entre Resumen, Servicios y Actividad sin desplazar la página; ☰ oculta o muestra la barra. En Servicios escribe nombre, URL, respuesta HTTP esperada (elige código y descripción, por ejemplo `200 · OK`), intervalo y autenticación si hace falta. **Agregar a monitoreo** guarda el endpoint, pero aún no lo consulta. Pulsa **Monitorear ahora** para ejecutar el GET. Los resultados y sus explicaciones aparecen en Actividad. El proceso también monitorea automáticamente cada 1, 5 o 10 minutos mientras permanezca abierto.
 
 ## 5. Casos manuales C01–C08
 
@@ -129,8 +129,8 @@ docker compose exec sentinel python -m scripts.check_database
 ## 7. Probar una API real
 
 1. Confirma que tienes permiso para consultar ese endpoint y que admite GET.
-2. Añade **solo el hostname** a `ALLOWED_TARGET_HOSTS` en `.env` y reinicia la aplicación. Si el destino es privado, añádelo también a `ALLOWED_PRIVATE_HOSTS`.
-3. Registra la URL completa, el código esperado y el intervalo. No pongas tokens en la URL.
+2. Registra la URL pública completa, el código esperado y el intervalo; no necesitas cambiar `.env` por cada API. Si el destino es privado, añade su hostname exacto a `ALLOWED_PRIVATE_HOSTS` en `.env` y reinicia la aplicación. No pongas tokens en la URL.
+3. Si la API usa una ruta específica para comprobar salud, escribe esa ruta en la URL; el sistema consulta exactamente esa dirección con GET.
 4. Si requiere autenticación, elige Bearer, API key en header o Basic. Para API key escribe el nombre exacto del header. Las credenciales requieren HTTPS, salvo localhost para la demo.
 5. Pulsa **Monitorear ahora**, revisa el código recibido y abre **Explicar**. Un 401 suele indicar token ausente, incorrecto o vencido; un 403 indica falta de permiso. El motor propone causas probables a partir de la respuesta observada.
 
@@ -142,7 +142,7 @@ Al editar una API protegida, dejar el secreto vacío conserva el anterior; escri
 |---|---|
 | No abre `127.0.0.1:8000` | Confirma que el proceso sigue abierto; si el puerto está ocupado, detén la otra instancia de Python o Docker. |
 | `ModuleNotFoundError` | Activa el entorno virtual indicado e instala `requirements.txt`. |
-| «El host no está autorizado» | Agrega el hostname exacto a `ALLOWED_TARGET_HOSTS` y reinicia. |
+| «El destino resuelve a una dirección privada» | Si es una API privada autorizada, agrega su hostname exacto a `ALLOWED_PRIVATE_HOSTS` y reinicia. |
 | «Configura CREDENTIALS_ENCRYPTION_KEY» | Ejecuta `python -m scripts.setup_credentials` o el equivalente de Docker. |
 | «No se pudo descifrar la credencial» | Restaurar la misma clave de cifrado usada al guardar el secreto; una clave nueva no sirve para datos existentes. |
 | HTTP 401/403 en una API real | Revisa token, header, usuario, permisos y código esperado. |

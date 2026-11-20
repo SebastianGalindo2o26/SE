@@ -50,7 +50,7 @@ flowchart LR
 ## Límites operativos actuales
 
 - El proceso local consulta APIs mediante GET y ejecuta los intervalos de 1, 5 o 10 minutos mientras está abierto. Se inicia con un solo proceso de Uvicorn para evitar programadores duplicados.
-- Los destinos deben estar en `ALLOWED_TARGET_HOSTS`; los destinos privados requieren además `ALLOWED_PRIVATE_HOSTS`. Los redireccionamientos HTTP no se siguen.
+- Los destinos públicos HTTP/HTTPS se aceptan directamente. Los destinos privados requieren `ALLOWED_PRIVATE_HOSTS`; la conexión usa una IP previamente validada y conserva el host original para HTTP y TLS. Los redireccionamientos HTTP no se siguen.
 - Las credenciales admiten Bearer, API key en header y Basic. Se exige HTTPS, excepto en localhost; los secretos no se incluyen en resultados JSON, HTML ni mensajes de error de conexión.
 - El dashboard acepta solo los hosts de `ALLOWED_APP_HOSTS`, exige token CSRF en formularios POST y escucha en `127.0.0.1`. Una publicación pública requiere autenticación y controles adicionales de salida.
 - PostgreSQL exige conexión cifrada mediante `sslmode=require`, `verify-ca` o `verify-full`.

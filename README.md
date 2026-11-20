@@ -40,7 +40,7 @@ En **Conecta un servicio**, selecciona **Sin autenticación**, **Bearer token**,
 
 Los secretos se cifran antes de guardarse en `credenciales_api`. La clave de cifrado `CREDENTIALS_ENCRYPTION_KEY` se genera con `python -m scripts.setup_credentials` y queda solo en `.env`; no aparece en el dashboard, en `/api/apis` ni en `/api/history`. Si usas la misma base Neon desde otro equipo, copia **la misma clave de cifrado** de forma segura al `.env` de ese equipo: una clave nueva no descifra credenciales ya guardadas. No coloques claves en la URL. Las APIs protegidas deben usar HTTPS; se permite HTTP solo para localhost en la demostración.
 
-El sistema realiza GET sin seguir redirecciones y cubre esos mecanismos de autenticación comunes. OAuth2 con renovación de token, firmas por solicitud y certificados de cliente requieren una integración específica. El host de la API debe estar en `ALLOWED_TARGET_HOSTS`.
+El sistema realiza GET sin seguir redirecciones y cubre esos mecanismos de autenticación comunes. OAuth2 con renovación de token, firmas por solicitud y certificados de cliente requieren una integración específica. Puedes registrar una URL pública HTTP/HTTPS directamente, sin agregar su host a `.env`.
 
 ## Componentes
 
@@ -71,6 +71,6 @@ Los destinos con direcciones privadas solo se permiten si el host está incluido
 
 ## Seguridad local
 
-El dashboard solo escucha en `127.0.0.1`. Los formularios POST exigen un token CSRF; el servidor acepta únicamente los hosts de `ALLOWED_APP_HOSTS`. Para monitorear una API pública autorizada, agrega su nombre de host exacto a `ALLOWED_TARGET_HOSTS` en `.env` y reinicia la aplicación. Los hosts privados requieren además `ALLOWED_PRIVATE_HOSTS`. Para PostgreSQL, `DATABASE_URL` debe incluir `sslmode=require`, `verify-ca` o `verify-full`.
+El dashboard solo escucha en `127.0.0.1`. Los formularios POST exigen un token CSRF; el servidor acepta únicamente los hosts de `ALLOWED_APP_HOSTS`. Las APIs públicas se registran con su URL directamente. Los destinos privados requieren incluir su hostname exacto en `ALLOWED_PRIVATE_HOSTS`; la conexión se fija a una IP validada para evitar que una segunda resolución DNS cambie el destino. Para PostgreSQL, `DATABASE_URL` debe incluir `sslmode=require`, `verify-ca` o `verify-full`.
 
 La aplicación está preparada para uso local de clase. Si se publica en internet, se debe añadir autenticación, límites de solicitudes y una política de red de salida más estricta antes de abrirla a otros usuarios.
