@@ -6,6 +6,9 @@ from urllib.parse import urlparse
 
 import httpx
 
+from .credentials import CredentialError, decrypt_secret
+from .models import ApiCredential
+
 
 class UnsafeDestination(ValueError):
     pass
@@ -38,15 +41,31 @@ def validate_destination(url: str) -> None:
         raise UnsafeDestination("El destino resuelve a una dirección privada; agréguelo a ALLOWED_PRIVATE_HOSTS si es una API autorizada.")
 
 
-def check_api(url: str) -> dict:
+def _request_auth(credential: ApiCredential | None) -> tuple[dict[str, str], httpx.Auth | None]:
+    if credential is None:
+        return {}, None
+    secret = decrypt_secret(credential.encrypted_secret)
+    if credential.auth_type == "bearer":
+        return {"Authorization": f"Bearer {secret}"}, None
+    if credential.auth_type == "api_key_header" and credential.header_name:
+        return {credential.header_name: secret}, None
+    if credential.auth_type == "basic" and credential.username:
+        return {}, httpx.BasicAuth(credential.username, secret)
+    raise CredentialError("La configuración de autenticación de esta API no es válida.")
+
+
+def check_api(url: str, credential: ApiCredential | None = None) -> dict:
     validate_destination(url)
+    headers, auth = _request_auth(credential)
     timeout = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "8"))
     started = time.perf_counter()
     try:
         with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as client:
-            response = client.get(url)
+            response = client.get(url, headers=headers, auth=auth)
         return {"status_code": response.status_code, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "error_type": None, "error_message": None}
     except httpx.TimeoutException as exc:
-        return {"status_code": None, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "error_type": "timeout", "error_message": str(exc) or "La solicitud excedió el tiempo límite."}
+        message = "La solicitud excedió el tiempo límite." if credential else str(exc) or "La solicitud excedió el tiempo límite."
+        return {"status_code": None, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "error_type": "timeout", "error_message": message}
     except httpx.RequestError as exc:
-        return {"status_code": None, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "error_type": "connection", "error_message": str(exc)}
+        message = "Error de conexión con el destino." if credential else str(exc)
+        return {"status_code": None, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "error_type": "connection", "error_message": message}

@@ -7,4 +7,5 @@ python-multipart>=0.0.9,<1.0
 psycopg[binary]>=3.2,<4.0
 apscheduler>=3.10,<4.0
 python-dotenv>=1.0,<2.0
+cryptography>=42,<60
 pytest>=8.0,<9.0

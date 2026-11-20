@@ -1,4 +1,4 @@
-"""Ejecuta los casos C01-C07 contra una aplicación ya iniciada en localhost.
+"""Ejecuta los casos C01-C08 contra una aplicación ya iniciada en localhost.
 
 Uso: python -m scripts.validate_live --cleanup
 """
@@ -14,11 +14,11 @@ PREFIX = "Validación " + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 CREATED_IDS: list[int] = []
 
 
-def create_api(client: httpx.Client, label: str, path: str, expected: int = 200) -> int:
+def create_api(client: httpx.Client, label: str, path: str, expected: int = 200, auth: dict[str, str] | None = None) -> int:
     name = f"{PREFIX} {label}"
     response = client.post(
         "/apis",
-        data={"name": name, "url": BASE + path, "expected_status": expected, "interval_minutes": 10, "csrf_token": client.cookies["csrf_token"]},
+        data={"name": name, "url": BASE + path, "expected_status": expected, "interval_minutes": 10, "csrf_token": client.cookies["csrf_token"], **(auth or {})},
     )
     assert response.status_code == 303, f"No se pudo registrar {name}: {response.status_code} {response.text}"
     apis = client.get("/api/apis").json()
@@ -51,7 +51,7 @@ def cleanup_created_apis() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Valida C01-C07 por HTTP contra el servidor local")
+    parser = argparse.ArgumentParser(description="Valida C01-C08 por HTTP contra el servidor local")
     parser.add_argument("--cleanup", action="store_true", help="Elimina de la base las APIs creadas por esta ejecución")
     args = parser.parse_args()
     try:
@@ -96,7 +96,13 @@ def run_cases() -> None:
         check(client, server, {"R02", "R12", "R13", "R15"}, "alta")
         print("C07 OK: tres HTTP 500")
 
-    print("C01-C07 completados correctamente")
+    # La clave de este endpoint es pública y sirve solo para la demostración local.
+    with httpx.Client(base_url=BASE, trust_env=False, timeout=20, follow_redirects=False) as client:
+        client.get("/").raise_for_status()
+        protected = create_api(client, "C08", "/demo/auth", auth={"auth_type": "api_key_header", "auth_header_name": "X-Demo-Key", "auth_secret": "sentinel-demo"})
+        check(client, protected, {"R01"}, "normal")
+        print("C08 OK: API key en header")
+    print("C01-C08 completados correctamente")
 
 
 if __name__ == "__main__":

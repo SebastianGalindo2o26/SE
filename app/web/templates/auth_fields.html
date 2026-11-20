@@ -1,0 +1,24 @@
+{% macro auth_fields(credential=None) %}
+{% set mode = credential.auth_type if credential else 'none' %}
+<fieldset class="auth-fields" data-auth-fields>
+  <legend>Autenticación de la API</legend>
+  <label>Tipo de acceso
+    <select name="auth_type" data-auth-type>
+      <option value="none" {% if mode == 'none' %}selected{% endif %}>Sin autenticación</option>
+      <option value="bearer" {% if mode == 'bearer' %}selected{% endif %}>Bearer token</option>
+      <option value="api_key_header" {% if mode == 'api_key_header' %}selected{% endif %}>API key en header</option>
+      <option value="basic" {% if mode == 'basic' %}selected{% endif %}>Usuario y contraseña (Basic)</option>
+    </select>
+  </label>
+  <label data-auth-header hidden>Nombre del header
+    <input name="auth_header_name" value="{{ credential.header_name if credential and credential.header_name else '' }}" maxlength="80" placeholder="X-API-Key" autocomplete="off">
+  </label>
+  <label data-auth-username hidden>Usuario
+    <input name="auth_username" value="{{ credential.username if credential and credential.username else '' }}" maxlength="160" autocomplete="off">
+  </label>
+  <label data-auth-secret hidden><span data-auth-secret-label>Token o clave</span>
+    <input name="auth_secret" type="password" maxlength="4096" autocomplete="new-password" placeholder="{{ 'Dejar vacío para conservar la clave' if credential else 'Ingresa la clave o token' }}">
+  </label>
+  <p class="auth-help" data-auth-help hidden>{% if credential %}Deja el secreto vacío para conservarlo; cambia el tipo para reemplazarlo.{% else %}La clave se cifra antes de guardarse y nunca se muestra de nuevo.{% endif %}</p>
+</fieldset>
+{% endmacro %}

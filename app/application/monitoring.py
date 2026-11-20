@@ -29,7 +29,7 @@ def serialize_monitor(monitor: MonitorRun) -> dict:
 
 
 def run_monitor(api: ApiEndpoint, db: Session) -> dict:
-    measurement = check_api(api.url)
+    measurement = check_api(api.url, api.credential)
     monitor = MonitorRun(api_id=api.id, target_url=api.url, expected_status=api.expected_status, **measurement)
     db.add(monitor)
     db.flush()

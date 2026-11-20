@@ -17,6 +17,8 @@ def main() -> None:
                     "reglas": connection.scalar(text("SELECT COUNT(*) FROM reglas")),
                     "monitoreos": connection.scalar(text("SELECT COUNT(*) FROM monitoreos")),
                 }
+                if "credenciales_api" in tables:
+                    counts["credenciales_api"] = connection.scalar(text("SELECT COUNT(*) FROM credenciales_api"))
             else:
                 counts = None
         print("Conexión a la base: OK")

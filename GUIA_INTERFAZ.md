@@ -30,17 +30,24 @@ En **Conecta un servicio**, el usuario llena:
 2. **URL del endpoint:** dirección HTTP o HTTPS que el sistema consultará.
 3. **HTTP esperado:** código que se considera respuesta correcta; por defecto es `200`.
 4. **Verificar cada:** intervalo de 1, 5 o 10 minutos.
+5. **Autenticación:** opcional. Elige Bearer token, API key en un header cuyo nombre defines, o usuario y contraseña Basic. La clave se introduce en un campo oculto.
 
 Al pulsar **Agregar a monitoreo**, el navegador envía un formulario interno a `POST /apis`. FastAPI valida los datos y el destino, guarda el servicio en la tabla `apis` y vuelve al dashboard. Un error de validación se muestra en una franja sobre la pantalla. Registrar una API **no** hace todavía una solicitud al servicio externo; la primera puede ejecutarse manualmente con `↻` o cuando llegue su turno automático.
 
 La lista `ALLOWED_TARGET_HOSTS` de `.env` define qué nombres de host se pueden registrar. Los destinos privados requieren además `ALLOWED_PRIVATE_HOSTS`. Por defecto se permite localhost para las pruebas de clase.
+
+### Credenciales de una API
+
+Para una API protegida, ejecuta una vez `python -m scripts.setup_credentials` antes de registrar la primera clave. El script crea `CREDENTIALS_ENCRYPTION_KEY` en `.env` sin mostrarla. El formulario cifra el secreto antes de almacenarlo en `credenciales_api`; el dashboard y las respuestas JSON solo muestran el **tipo** de autenticación. Al editar, deja el campo secreto vacío para conservarlo, escribe otro para reemplazarlo o selecciona **Sin autenticación** para eliminarlo.
+
+El monitoreo manual y el automático usan la misma credencial. Los destinos protegidos requieren HTTPS; para la prueba local se permite HTTP en localhost. No pongas tokens en la URL. Si dos equipos usan la misma base Neon, necesitan la misma clave de cifrado en sus archivos `.env`.
 
 ## Administrar y monitorear servicios
 
 Cada servicio activo tiene dos controles:
 
 - **`↻` Monitorear ahora:** envía `POST /apis/{id}/monitor` al propio backend. FastAPI solicita al servicio registrado mediante **HTTP GET** con HTTPX. La interfaz usa POST solo para comunicar la pulsación del botón; el monitoreo hacia la API sigue siendo GET.
-- **`···` Editar:** permite cambiar nombre, URL, código esperado e intervalo. También muestra **Desactivar servicio**. La desactivación detiene verificaciones futuras y oculta la API del listado activo, pero conserva el historial.
+- **`···` Editar:** permite cambiar nombre, URL, código esperado, intervalo y autenticación. También muestra **Desactivar servicio**. La desactivación detiene verificaciones futuras y oculta la API del listado activo, pero conserva el historial.
 
 Debajo del listado aparece **Servicios desactivados** cuando hay alguno. Desde ahí se puede **Reactivar** y volver a monitorear esa API. Si se cambia la URL, las fallas de la dirección anterior no cuentan para una nueva secuencia de tres fallas consecutivas.
 
@@ -96,7 +103,8 @@ El bloque **Prueba local lista para usar** muestra rutas simuladas. Para registr
 | `/demo/status/503` | Servicio no disponible R04; al repetir tres veces, R12, R14 y R15 |
 | `/demo/delay/2200` | Rendimiento degradado, R10 |
 | `/demo/delay/9000` | Timeout y regla R11 con el límite predeterminado de 8 segundos |
+| `/demo/auth` | API protegida: seleccionar API key en header, nombre `X-Demo-Key` y valor `sentinel-demo`; al recibirla activa R01 |
 
-El [guion y la matriz de validación](FASE2_VALIDACION.md) contienen los casos C01–C07. La implementación de la interfaz está en `app/web/templates/index.html`, `app/web/static/app.css` y `app/web/static/app.js`. La [arquitectura](ARQUITECTURA.md) explica cómo se comunican esos archivos con los demás módulos.
+El [guion y la matriz de validación](FASE2_VALIDACION.md) contienen C01–C07 de la fase 1 y C08 de autenticación. La implementación de la interfaz está en `app/web/templates/`, `app/web/static/app.css`, `app/web/static/auth.css` y `app/web/static/app.js`. La [arquitectura](ARQUITECTURA.md) explica cómo se comunican esos archivos con los demás módulos.
 
-La interfaz y los casos C01–C07 se verificaron con Neon PostgreSQL el 19/11/2026. La conexión se toma de `.env`; las credenciales no aparecen en la interfaz ni en la salida de validación.
+La interfaz y los casos C01–C08 se verificaron con Neon PostgreSQL el 20/11/2026. La conexión se toma de `.env`; las credenciales no aparecen en la interfaz ni en la salida de validación.

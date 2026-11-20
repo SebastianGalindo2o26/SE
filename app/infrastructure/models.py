@@ -21,6 +21,18 @@ class ApiEndpoint(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     monitors: Mapped[list["MonitorRun"]] = relationship(back_populates="api", cascade="all, delete-orphan")
+    credential: Mapped["ApiCredential | None"] = relationship(back_populates="api", cascade="all, delete-orphan", uselist=False)
+
+
+class ApiCredential(Base):
+    __tablename__ = "credenciales_api"
+
+    api_id: Mapped[int] = mapped_column(ForeignKey("apis.id", ondelete="CASCADE"), primary_key=True)
+    auth_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    header_name: Mapped[str | None] = mapped_column(String(80))
+    username: Mapped[str | None] = mapped_column(String(160))
+    encrypted_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    api: Mapped[ApiEndpoint] = relationship(back_populates="credential")
 
 
 class Rule(Base):

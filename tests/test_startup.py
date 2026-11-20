@@ -19,9 +19,12 @@ from app.infrastructure.models import Rule
 
 with TestClient(app, base_url='http://localhost') as client:
     assert client.get('/health').json() == {'status': 'ok'}
-    assert client.get('/').status_code == 200
+    page = client.get('/')
+    assert page.status_code == 200
+    assert 'name="auth_type"' in page.text
     assert '.demo-examples' in client.get('/static/app.css').text
-    assert len(inspect(engine).get_table_names()) == 6
+    assert client.get('/static/auth.css').status_code == 200
+    assert len(inspect(engine).get_table_names()) == 7
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Rule.id))) == 15
 """

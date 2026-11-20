@@ -1,0 +1,9 @@
+.auth-fields{grid-column:1/-1;min-width:0;border:1px solid #e5e8f2;border-radius:10px;padding:12px;margin:3px 0 5px;display:grid;gap:10px;background:#fafbff}
+.auth-fields legend{padding:0 6px;color:#5665bd;font-size:10px;font-weight:700;letter-spacing:.3px}
+.auth-fields label{display:grid;gap:5px;min-width:0;color:#48536b;font-size:10px;font-weight:600}
+.auth-fields input,.auth-fields select{width:100%;min-width:0;border:1px solid #dfe4ef;border-radius:7px;background:#fff;color:#27334c;padding:9px 10px;font:inherit;font-size:11px}
+.auth-fields input:focus,.auth-fields select:focus{outline:2px solid #aab5ff;outline-offset:1px}
+.auth-fields [hidden]{display:none!important}
+.auth-help{margin:0;color:#778197;font-size:10px;line-height:1.5}
+.edit-popover .auth-fields{padding:10px;margin:4px 0}
+.edit-popover .auth-fields label{font-size:10px}

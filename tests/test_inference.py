@@ -91,7 +91,7 @@ def test_integrated_monitor_persists_explanation_and_escalates(monkeypatch):
         api = ApiEndpoint(name="API simulada", url="http://localhost:9999", expected_status=200)
         db.add(api)
         db.commit()
-        monkeypatch.setattr("app.application.monitoring.check_api", lambda _url: {"status_code": 500, "latency_ms": 120, "error_type": None, "error_message": None})
+        monkeypatch.setattr("app.application.monitoring.check_api", lambda _url, _credential=None: {"status_code": 500, "latency_ms": 120, "error_type": None, "error_message": None})
         for _ in range(3):
             payload = run_monitor(api, db)
         assert payload["severity"] == "alta"
@@ -108,7 +108,7 @@ def test_integrated_monitor_persists_explanation_and_escalates(monkeypatch):
         other = ApiEndpoint(name="Otra API", url="http://localhost:9998", expected_status=200)
         db.add(other)
         db.commit()
-        monkeypatch.setattr("app.application.monitoring.check_api", lambda _url: {"status_code": None, "latency_ms": 80, "error_type": "connection", "error_message": "Sin conexión"})
+        monkeypatch.setattr("app.application.monitoring.check_api", lambda _url, _credential=None: {"status_code": None, "latency_ms": 80, "error_type": "connection", "error_message": "Sin conexión"})
         for _ in range(3):
             other_payload = run_monitor(other, db)
         assert {rule["id"] for rule in other_payload["rules"]} == {"R11"}
@@ -123,7 +123,7 @@ def test_periodic_monitoring_respects_interval_and_inactive_services(monkeypatch
     Base.metadata.create_all(test_engine)
     TestSession = sessionmaker(bind=test_engine, autoflush=False, expire_on_commit=False)
     monkeypatch.setattr("app.infrastructure.scheduler.SessionLocal", TestSession)
-    monkeypatch.setattr("app.application.monitoring.check_api", lambda _url: {"status_code": 200, "latency_ms": 20, "error_type": None, "error_message": None})
+    monkeypatch.setattr("app.application.monitoring.check_api", lambda _url, _credential=None: {"status_code": 200, "latency_ms": 20, "error_type": None, "error_message": None})
     try:
         with TestSession() as db:
             active = ApiEndpoint(name="Activa", url="http://localhost:9000", interval_minutes=1)

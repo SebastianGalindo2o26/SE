@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS reglas (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   definition JSONB NOT NULL DEFAULT '{}'::jsonb
 );
+CREATE TABLE IF NOT EXISTS credenciales_api (
+  api_id BIGINT PRIMARY KEY REFERENCES apis(id) ON DELETE CASCADE,
+  auth_type VARCHAR(32) NOT NULL,
+  header_name VARCHAR(80),
+  username VARCHAR(160),
+  encrypted_secret TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS monitoreos (
   id BIGSERIAL PRIMARY KEY,
   api_id BIGINT NOT NULL REFERENCES apis(id) ON DELETE CASCADE,

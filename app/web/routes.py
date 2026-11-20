@@ -3,13 +3,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
+from ..application.authentication import configure_authentication
 from ..application.monitoring import run_monitor, serialize_monitor as _serialize
+from ..infrastructure.credentials import CredentialError
 from ..infrastructure.database import get_db
 from ..infrastructure.models import ApiEndpoint, Diagnosis, MonitorRun, Rule
 from ..infrastructure.http_monitor import UnsafeDestination, validate_destination
@@ -22,7 +24,7 @@ router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)):
-    apis = db.scalars(select(ApiEndpoint).where(ApiEndpoint.active.is_(True)).order_by(ApiEndpoint.id)).all()
+    apis = db.scalars(select(ApiEndpoint).options(joinedload(ApiEndpoint.credential)).where(ApiEndpoint.active.is_(True)).order_by(ApiEndpoint.id)).all()
     inactive_apis = db.scalars(select(ApiEndpoint).where(ApiEndpoint.active.is_(False)).order_by(ApiEndpoint.id)).all()
     recent = db.scalars(select(MonitorRun).options(joinedload(MonitorRun.api), joinedload(MonitorRun.diagnosis).joinedload(Diagnosis.fired_rules)).order_by(desc(MonitorRun.checked_at), desc(MonitorRun.id)).limit(25)).unique().all()
     serialized = [_serialize(run) for run in recent]
@@ -46,7 +48,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/apis")
-def create_api(name: str = Form(...), url: str = Form(...), expected_status: int = Form(200), interval_minutes: int = Form(5), db: Session = Depends(get_db), _: None = Depends(require_csrf)):
+def create_api(name: str = Form(...), url: str = Form(...), expected_status: int = Form(200), interval_minutes: int = Form(5), auth_type: str = Form("none"), auth_header_name: str = Form(""), auth_username: str = Form(""), auth_secret: str = Form(""), db: Session = Depends(get_db), _: None = Depends(require_csrf)):
     name = name.strip()
     url = url.strip()
     if not name or len(name) > 120 or expected_status < 100 or expected_status > 599 or interval_minutes not in (1, 5, 10):
@@ -56,13 +58,17 @@ def create_api(name: str = Form(...), url: str = Form(...), expected_status: int
     except UnsafeDestination as exc:
         return RedirectResponse("/?error=" + quote(str(exc)), status_code=303)
     api = ApiEndpoint(name=name, url=url, expected_status=expected_status, interval_minutes=interval_minutes)
+    try:
+        configure_authentication(api, auth_type, auth_header_name, auth_username, auth_secret)
+    except CredentialError as exc:
+        return RedirectResponse("/?error=" + quote(str(exc)), status_code=303)
     db.add(api)
     db.commit()
     return RedirectResponse("/", status_code=303)
 
 
 @router.post("/apis/{api_id}/update")
-def update_api(api_id: int, name: str = Form(...), url: str = Form(...), expected_status: int = Form(200), interval_minutes: int = Form(5), db: Session = Depends(get_db), _: None = Depends(require_csrf)):
+def update_api(api_id: int, name: str = Form(...), url: str = Form(...), expected_status: int = Form(200), interval_minutes: int = Form(5), auth_type: str | None = Form(None), auth_header_name: str = Form(""), auth_username: str = Form(""), auth_secret: str = Form(""), db: Session = Depends(get_db), _: None = Depends(require_csrf)):
     api = db.get(ApiEndpoint, api_id)
     if api is None:
         raise HTTPException(status_code=404, detail="API no encontrada.")
@@ -74,6 +80,12 @@ def update_api(api_id: int, name: str = Form(...), url: str = Form(...), expecte
     except UnsafeDestination as exc:
         return RedirectResponse("/?error=" + quote(str(exc)), status_code=303)
     api.name, api.url, api.expected_status, api.interval_minutes = name, url, expected_status, interval_minutes
+    if auth_type is not None:
+        try:
+            configure_authentication(api, auth_type, auth_header_name, auth_username, auth_secret)
+        except CredentialError as exc:
+            db.rollback()
+            return RedirectResponse("/?error=" + quote(str(exc)), status_code=303)
     db.commit()
     return RedirectResponse("/", status_code=303)
 
@@ -85,8 +97,8 @@ def monitor_api(api_id: int, db: Session = Depends(get_db), _: None = Depends(re
         raise HTTPException(status_code=404, detail="API no encontrada o desactivada.")
     try:
         run_monitor(api, db)
-    except UnsafeDestination as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (UnsafeDestination, CredentialError) as exc:
+        return RedirectResponse("/?error=" + quote(str(exc)), status_code=303)
     return RedirectResponse("/", status_code=303)
 
 
@@ -112,7 +124,7 @@ def activate_api(api_id: int, db: Session = Depends(get_db), _: None = Depends(r
 
 @router.get("/api/apis")
 def list_apis(db: Session = Depends(get_db)):
-    return [{"id": a.id, "name": a.name, "url": a.url, "expected_status": a.expected_status, "interval_minutes": a.interval_minutes, "active": a.active} for a in db.scalars(select(ApiEndpoint).order_by(ApiEndpoint.id)).all()]
+    return [{"id": a.id, "name": a.name, "url": a.url, "expected_status": a.expected_status, "interval_minutes": a.interval_minutes, "active": a.active, "auth_type": a.credential.auth_type if a.credential else "none"} for a in db.scalars(select(ApiEndpoint).options(joinedload(ApiEndpoint.credential)).order_by(ApiEndpoint.id)).all()]
 
 
 @router.get("/api/rules")
@@ -140,6 +152,14 @@ def demo_status(status_code: int):
     if not 100 <= status_code <= 599:
         raise HTTPException(status_code=422, detail="El código HTTP debe estar entre 100 y 599.")
     return JSONResponse(status_code=status_code, content={"demo": True, "status_code": status_code})
+
+
+@router.get("/demo/auth")
+def demo_auth(x_demo_key: str | None = Header(default=None)):
+    """Endpoint local de clase para comprobar el envío de una API key."""
+    if x_demo_key != "sentinel-demo":
+        return JSONResponse(status_code=401, content={"demo": True, "authorized": False})
+    return {"demo": True, "authorized": True}
 
 
 @router.get("/demo/delay/{milliseconds}")
