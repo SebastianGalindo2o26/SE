@@ -1,0 +1,12 @@
+services:
+  sentinel:
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - sentinel_data:/data
+      - ./.env:/data/.env
+
+volumes:
+  sentinel_data:

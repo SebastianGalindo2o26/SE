@@ -4,17 +4,18 @@ Implementación de la fase 2 basada en la documentación de fase 1. Incluye Fast
 
 La [arquitectura](ARQUITECTURA.md) describe los módulos, el flujo de razonamiento y las tablas.
 La [guía de interfaz](GUIA_INTERFAZ.md) explica cada sección y acción del dashboard desde el punto de vista del usuario.
+La [guía de pruebas locales](PRUEBAS_LOCALES.md) contiene instalación, Docker opcional, flujo de componentes y casos C01–C08 paso a paso.
 
 ## Requisitos
 
-- Python 3.11 o superior. En este equipo se detectó Python 3.12.6 de 64 bits.
+- Python 3.11 o superior.
 - Para usar Neon: una URL PostgreSQL de Neon con SSL habilitado.
 
 ## Instalación y ejecución en Windows PowerShell
 
 ```powershell
-$python = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
-& $python -m venv .venv
+python --version
+python -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 & .\.venv\Scripts\python.exe -m scripts.setup_credentials
@@ -22,6 +23,10 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 Abrir <http://127.0.0.1:8000>. Las tablas y las 15 reglas se inicializan en el primer arranque en la base indicada por `DATABASE_URL`. Si se usa la configuración de `.env.example`, se crea `api_expert.db` (SQLite). Puedes registrar, editar, desactivar y reactivar APIs, monitorearlas a mano y configurar comprobaciones automáticas cada 1, 5 o 10 minutos mientras la aplicación esté abierta.
+
+## Docker opcional
+
+Con Docker Desktop iniciado y `.env` preparado, ejecuta `docker compose build`, `docker compose run --rm sentinel python -m scripts.setup_credentials` y `docker compose up -d`. Abre la misma URL local; `docker compose down` detiene la aplicación y conserva la base SQLite del volumen. La [guía de pruebas locales](PRUEBAS_LOCALES.md) explica ambos métodos y cómo verificar C01–C08 desde el contenedor.
 
 ## Demostración en clase
 
